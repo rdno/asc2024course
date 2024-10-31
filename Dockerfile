@@ -60,7 +60,8 @@ RUN adduser --disabled-password \
     --uid ${NB_UID} \
     ${NB_USER}
 
-ADD docker/Welcome.ipynb /Welcome.ipynb
-SHELL ["/bin/sh", "-c"]
-ENTRYPOINT cp /Welcome.ipynb /notebooks && /usr/bin/jupyter lab --allow-root --no-browser --ip=0.0.0.0 --notebook-dir=/notebooks /notebooks/Welcome.ipynb
-EXPOSE 8888
+ADD docker/Welcome.ipynb ${HOME}/Welcome.ipynb
+# SHELL ["/bin/sh", "-c"]
+# ENTRYPOINT cp /Welcome.ipynb /notebooks && /usr/bin/jupyter lab --allow-root --no-browser --ip=0.0.0.0 --notebook-dir=/notebooks /notebooks/Welcome.ipynb
+# EXPOSE 8888
+WORKDIR ${HOME}
