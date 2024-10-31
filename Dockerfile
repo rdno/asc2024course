@@ -49,6 +49,17 @@ ENV OMPI_MCA_plm="^rsh" \
     OMPI_ALLOW_RUN_AS_ROOT=1 \
     OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
 
+
+ARG NB_USER
+ARG NB_UID
+ENV USER=${NB_USER}
+ENV HOME=/home/${NB_USER}
+
+RUN adduser --disabled-password \
+    --gecos "Default user" \
+    --uid ${NB_UID} \
+    ${NB_USER}
+
 ADD docker/Welcome.ipynb /Welcome.ipynb
 SHELL ["/bin/sh", "-c"]
 ENTRYPOINT cp /Welcome.ipynb /notebooks && /usr/bin/jupyter lab --allow-root --no-browser --ip=0.0.0.0 --notebook-dir=/notebooks /notebooks/Welcome.ipynb
