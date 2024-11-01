@@ -30,7 +30,7 @@ DT                              = 1.0d-3
 # 1 = Newmark (2nd order), 2 = LDDRK4-6 (4th-order 6-stage low storage Runge-Kutta), 3 = classical RK4 4th-order 4-stage Runge-Kutta
 time_stepping_scheme            = 1
 
-# set the type of calculation (P-SV or SH/membrane waves)
+# set the type of calculation (P-SV (EM TE) or SH/membrane waves (EM TM))
 P_SV                            = .false.
 
 # axisymmetric (2.5D) or Cartesian planar (2D) simulation
@@ -68,6 +68,9 @@ MODEL                           = default
 # (available output formats: ascii,binary,gll,legacy)
 SAVE_MODEL                      = default
 
+# external tomography file
+# (used for tomography materials with negative material ids and/or MODEL==tomo settings)
+TOMOGRAPHY_FILE                 = dummy
 
 #-----------------------------------------------------------
 #
@@ -89,6 +92,11 @@ USE_SOLVOPT                     = .false.        # use more precise but much mor
 ATTENUATION_PORO_FLUID_PART     = .false.        # turn viscous attenuation on or off for the fluid part of poroelastic parts of the model
 Q0_poroelastic                  = 1              # quality factor for viscous attenuation (ignore it if you are not using a poroelastic material)
 freq0_poroelastic               = 10             # frequency for viscous attenuation (ignore it if you are not using a poroelastic material)
+
+# for electromagnetic attenuation
+ATTENUATION_PERMITTIVITY        = .false.        # turn permittivity (Zener model) attenuation on or off for electromagnetic material
+ATTENUATION_CONDUCTIVITY        = .false.        # turn conductivity (Kelvin-Voigt model) attenuation on or off for electromagnetic material
+f0_electromagnetic              = 1.d9           # (Hz) relevant only if source is a Dirac or a Heaviside, otherwise it is f0 the dominant frequency of the source in the DATA/SOURCE file
 
 # to undo attenuation and/or PMLs for sensitivity kernel calculations or forward runs with SAVE_FORWARD
 # use the flag below. It performs undoing of attenuation and/or of PMLs in an exact way for sensitivity kernel calculations
@@ -141,7 +149,7 @@ write_moving_sources_database   = .false.
 #-----------------------------------------------------------
 
 # receiver set parameters for recording stations (i.e. recording points)
-# seismotype : record 1=displ 2=veloc 3=accel 4=pressure 5=curl of displ 6=the fluid potential
+# seismotype : record 1=displ 2=veloc 3=accel 4=pressure 5=curl of displ 6=the fluid potential 7=electric field
 seismotype                      = 1              # several values can be chosen. For example : 1,2,4
 
 # interval in time steps for writing of seismograms
@@ -239,34 +247,9 @@ PERIODIC_HORIZ_DIST             = 4000.d0
 
 #-----------------------------------------------------------
 #
-# Velocity and density models
+# MESHING - Velocity and density models
 #
 #-----------------------------------------------------------
-
-# number of model materials
-nbmodels                        = 4
-# available material types (see user manual for more information)
-#   acoustic:              model_number 1 rho Vp 0  0 0 QKappa 9999 0 0 0 0 0 0 (for QKappa use 9999 to ignore it)
-#   elastic:               model_number 1 rho Vp Vs 0 0 QKappa Qmu  0 0 0 0 0 0 (for QKappa and Qmu use 9999 to ignore them)
-#   anisotropic:           model_number 2 rho c11 c13 c15 c33 c35 c55 c12 c23 c25   0 QKappa Qmu
-#   anisotropic in AXISYM: model_number 2 rho c11 c13 c15 c33 c35 c55 c12 c23 c25 c22 QKappa Qmu
-#   poroelastic:           model_number 3 rhos rhof phi c kxx kxz kzz Ks Kf Kfr etaf mufr Qmu
-#   tomo:                  model_number -1 0 0 A 0 0 0 0 0 0 0 0 0 0
-#
-# note: When viscoelasticity or viscoacousticity is turned on,
-#       the Vp and Vs values that are read here are the UNRELAXED ones i.e. the values at infinite frequency
-#       unless the READ_VELOCITIES_AT_f0 parameter above is set to true, in which case they are the values at frequency f0.
-#
-#       Please also note that Qmu is always equal to Qs, but Qkappa is in general not equal to Qp.
-#       To convert one to the other see doc/Qkappa_Qmu_versus_Qp_Qs_relationship_in_2D_plane_strain.pdf and
-#       utils/attenuation/conversion_from_Qkappa_Qmu_to_Qp_Qs_from_Dahlen_Tromp_959_960.f90.
-1 1 2700.d0 3000.d0 1800.0d0 0 0 9999 9999 0 0 0 0 0 0
-2 1 2500.d0 2700.d0 0 0 0 9999 9999 0 0 0 0 0 0
-3 1 2200.d0 2500.d0 1443.375d0 0 0 9999 9999 0 0 0 0 0 0
-4 1 2200.d0 2200.d0 1343.375d0 0 0 9999 9999 0 0 0 0 0 0
-
-# external tomography file
-TOMOGRAPHY_FILE                 = ./DATA/tomo_file.xyz
 
 # use an external mesh created by an external meshing tool or use the internal mesher
 read_external_mesh              = .false.
@@ -279,21 +262,43 @@ read_external_mesh              = .false.
 
 # data concerning mesh, when generated using third-party app (more info in README)
 # (see also absorbing_conditions above)
-mesh_file                       = ./DATA/mesh_file          # file containing the mesh
-nodes_coords_file               = ./DATA/nodes_coords_file  # file containing the nodes coordinates
-materials_file                  = ./DATA/materials_file     # file containing the material number for each element
-free_surface_file               = ./DATA/free_surface_file  # file containing the free surface
-axial_elements_file             = ./DATA/axial_elements_file   # file containing the axial elements if AXISYM is true
-absorbing_surface_file          = ./DATA/absorbing_surface_file   # file containing the absorbing surface
-acoustic_forcing_surface_file   = ./DATA/MSH/Surf_acforcing_Bottom_enforcing_mesh   # file containing the acoustic forcing surface
-absorbing_cpml_file             = ./DATA/absorbing_cpml_file   # file containing the CPML element numbers
-tangential_detection_curve_file = ./DATA/courbe_eros_nodes  # file containing the curve delimiting the velocity model
+mesh_file                       = dummy                                   # file containing the mesh
+nodes_coords_file               = dummy                                   # file containing the nodes coordinates
+materials_file                  = dummy                                   # file containing the material number for each element
+nummaterial_velocity_file       = dummy                                   # file containing the material properties for each material
+free_surface_file               = dummy                                   # file containing the free surface
+axial_elements_file             = dummy                                   # file containing the axial elements if AXISYM is true
+absorbing_surface_file          = dummy                                   # file containing the absorbing surface
+acoustic_forcing_surface_file   = dummy                                   # file containing the acoustic forcing surface
+absorbing_cpml_file             = dummy                                   # file containing the CPML element numbers
+tangential_detection_curve_file = dummy                                   # file containing the curve delimiting the velocity model
 
 #-----------------------------------------------------------
 #
 # PARAMETERS FOR INTERNAL MESHING
 #
 #-----------------------------------------------------------
+
+# material properties
+# number of model materials
+nbmodels                        = 1
+# available material types (see user manual for more information)
+#   acoustic:              model_number 1 rho Vp 0  0 0 QKappa 9999 0 0 0 0 0 0 (for QKappa use 9999 to ignore it)
+#   elastic:               model_number 1 rho Vp Vs 0 0 QKappa Qmu  0 0 0 0 0 0 (for QKappa and Qmu use 9999 to ignore them)
+#   anisotropic:           model_number 2 rho c11 c13 c15 c33 c35 c55 c12 c23 c25   0 QKappa Qmu
+#   anisotropic in AXISYM: model_number 2 rho c11 c13 c15 c33 c35 c55 c12 c23 c25 c22 QKappa Qmu
+#   poroelastic:           model_number 3 rhos rhof phi c kxx kxz kzz Ks Kf Kfr etaf mufr Qmu
+#   electromagnetic:       model_number 4 mu0 e0 e11(e0) e33(e0) sig11 sig33 Qe11 Qe33 Qs11 Qs33 0 0 0
+#   tomo:                  model_number -1 0 0 A 0 0 0 0 0 0 0 0 0 0
+#
+# note: When viscoelasticity or viscoacousticity is turned on,
+#       the Vp and Vs values that are read here are the UNRELAXED ones i.e. the values at infinite frequency
+#       unless the READ_VELOCITIES_AT_f0 parameter above is set to true, in which case they are the values at frequency f0.
+#
+#       Please also note that Qmu is always equal to Qs, but Qkappa is in general not equal to Qp.
+#       To convert one to the other see doc/Qkappa_Qmu_versus_Qp_Qs_relationship_in_2D_plane_strain.pdf and
+#       utils/attenuation/conversion_from_Qkappa_Qmu_to_Qp_Qs_from_Dahlen_Tromp_959_960.f90.
+1 1 2700.d0 3000.d0 1800.0d0 0 0 9999 9999 0 0 0 0 0 0
 
 # file containing interfaces for internal mesh
 interfacesfile                  = interfaces.dat
