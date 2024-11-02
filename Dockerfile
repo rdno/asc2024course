@@ -20,6 +20,7 @@ RUN apk update \
     py3-pip \
     proj-util geos git \
     hdf5 \
+    hdf5-dev \
 && apk add --virtual=build_dependencies \
     cmake \
     gcc \
@@ -28,7 +29,6 @@ RUN apk update \
     make \
     musl-dev \
     openmpi-dev \
-    hdf5-dev \
     linux-headers \
     python3-dev \
     cython \
@@ -36,7 +36,7 @@ RUN apk update \
     proj-dev \
 && ln -s /usr/include/locale.h /usr/include/xlocale.h \
 && python3 -m pip --no-cache-dir install --break-system-packages \
-    numpy \
+    numpy==1.26.4 \
     scipy \
     matplotlib \
     psutil \
