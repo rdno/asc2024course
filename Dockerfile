@@ -14,6 +14,7 @@ RUN apk update \
 && apk add \
     ca-certificates \
     libstdc++ \
+    libgfortran \
     openmpi \
     python3 \
     py3-pip \
